@@ -8,6 +8,7 @@ from urlparse import urlparse
 import time
 import os
 import json
+import config
 
 allowed_netlocs = ['4048.co.nf','3301.co.nf','4048712.co.nf','52.32.251.99']
 def main():
@@ -42,7 +43,10 @@ def main():
             print "Permutation %s: %s was updated on %s" % (state[url['url']]['permutations'],url['url'], time.ctime())
             store_body(url,body)
             if url['type'] == 'img':
+                send_mail(config.email,'Updated image url %s' % url['url'],'Not sending the image, lolz')
                 continue
+            else:
+                send_mail(config.email,'Updated site url %s' % url['url'],body)
             try:
                 s = soup(body)
                 for anchor in s('a'):
@@ -55,6 +59,7 @@ def main():
                         if new_url not in urls:
                             print "Permutation %s: Found URL in %s. New URL: %s" % (state[url['url']]['permutations'],url['url'], new_url['url'])
                             urls.append(new_url)
+                            send_mail(config.email,'Found new website %s' % new_url['url'],'Hoi')
                             # Send e-mail
                     except Exception as e:
                         print e
@@ -68,6 +73,7 @@ def main():
                         if new_url not in urls:
                             print "Permutation %s: Found URL in %s. New URL: %s" % (state[url['url']]['permutations'],url['url'], new_url['url'])
                             urls.append(new_url)
+                            send_mail(config.email,'Found new image %s' % new_url['url'],'Hoi')
                     except Exception as e:
                         print e
             except Exception as e:
@@ -144,7 +150,17 @@ def store_urls(urls):
     with open('urls.json','w') as f:
         f.write(json.dumps(urls, indent=4, sort_keys=True))
 
-def send_mail(address, title, message):
+def send_mail(address, title, body):
+    import sendgrid
+
+    sg = sendgrid.SendGridClient(config.api_key)
+
+    message = sendgrid.Mail()
+    message.add_to(config.email)
+    message.set_subject(title)
+    message.set_text(body)
+    message.set_from('Cicada <cicada@email.com>')
+    status, msg = sg.send(message)
     pass
 
 if __name__ == '__main__':
